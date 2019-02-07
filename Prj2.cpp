@@ -2,6 +2,7 @@
 #include <string>
 #include <stack>
 #include <vector>
+#include <assert.h>
 
 using namespace std;
 
@@ -29,19 +30,19 @@ public:
 void createAST(node*& head,const string& str);  // Essentially a wrapper
 void Vectorize(vector<string>& v, const string& str);  // Turns string expression into vector of strings
 void resolveExp(const vector<string>::iterator& end,node*& p,vector<string>::iterator& i); // Resolves expression of vector<string> into AST
-bool evalAST(node*& p);
+void evalAST(node*& p);
+bool recursiveEval(node*& p);
 
 
 
 int main() {
 
-	//string exp{"!true||false&&false"};
-	string exp{"!((!false)||true)"};
-	//string exp{"true"};
+	string exp{"!true||false&&false"};    // Result = false
+	//string exp{"!((!false)||true)"};    // Result = false
+	//string exp{"true"};                 // Result = true
 	node* treeHead = nullptr;
 	createAST(treeHead,exp);
-	bool ans = evalAST(treeHead);
-	cout << ans << endl;
+	evalAST(treeHead);
 	
 
 	return 0;
@@ -81,58 +82,53 @@ void createAST(node*& head,const string& str) {
 }
 
 void resolveExp(const vector<string>::iterator& end,node*& p,vector<string>::iterator& i) {
-//	for (i;i<end;++i) {  // !((!false)||true)
-	//cout << "i: " << *i << endl;
-		if (*i=="!") {
-//			cout << "exc" << endl;
-			auto dummy = i+1;
+	if (*i=="!") {   
+		auto dummy = i+1;   // It was either throw "i+1" into the function using a cast, or use a dummy variable
+		if (dummy!=end)
 			resolveExp(end,p,dummy);
-//			cout << "After" << endl;
-			node* temp = p;
-			p = new node{*i,temp};
-			cout << p->Expression << endl;
-			i = dummy+1;
+		node* temp = p;
+		p = new node{*i,temp};
+		i = dummy+1;
+		if (i!=end)
 			resolveExp(end,p,i);
-		}
-		else if (*i=="true" || *i=="false") {
-			node* temp = p;
-			p = new node{*i,temp};
-			cout << p->Expression << endl;
-			//cout << *(i-1) << endl;
-			if (*(i-1)=="!")
-				return;
-
+	}
+	else if (*i=="true" || *i=="false") {
+		node* temp = p;
+		p = new node{*i,temp};
+		if (i+1!=end)
 			resolveExp(end,p,++i);
-		}
-		else if (*i=="||" || *i=="&&") {
-			node* temp = p;
-			p = new binaryOp;
-			p->Expression = *i;
-			cout << p->Expression << endl;
-			static_cast<binaryOp*>(p)->leftChild = temp;
-			temp = nullptr;
+	}
+	else if (*i=="||" || *i=="&&") {
+		node* temp = p;
+		p = new binaryOp;
+		p->Expression = *i;
+		static_cast<binaryOp*>(p)->leftChild = temp;
+		temp = nullptr;
+		if (i+1!=end)
 			resolveExp(end,temp,++i);
-			static_cast<binaryOp*>(p)->rightChild = temp;
-		}
-		else if (*i=="(")
-			resolveExp(end,p,++i);
-//	}
+		static_cast<binaryOp*>(p)->rightChild = temp;
+	}
+	else if (*i=="(" && i+1!=end)
+		resolveExp(end,p,++i);
 }
 
-bool evalAST(node*& p) {
-	if (p->succ != nullptr)
-		return evalAST(p->succ);
-	else if (p->Expression=="!")
-		return !evalAST(p->succ);
+bool recursiveEval(node*& p) {
+	if (p->Expression=="!")
+		return !recursiveEval(p->succ);
 	else if (p->Expression=="||")
-		return evalAST(static_cast<binaryOp*>(p)->leftChild) || evalAST(static_cast<binaryOp*>(p)->rightChild);
+		return recursiveEval(static_cast<binaryOp*>(p)->leftChild) || recursiveEval(static_cast<binaryOp*>(p)->rightChild);
 	else if (p->Expression=="&&")
-		return evalAST(static_cast<binaryOp*>(p)->leftChild) && evalAST(static_cast<binaryOp*>(p)->rightChild);
+		return recursiveEval(static_cast<binaryOp*>(p)->leftChild) && recursiveEval(static_cast<binaryOp*>(p)->rightChild);
 	else if (p->Expression=="true")
 		return true;
+	else if (p->Expression=="false")
+		return false;
+}
 
-	//cout << p->Expression << endl;
-
-	return false;
-
+void evalAST(node*& p) {   // Evaluation wrapper to house recursive function
+	bool ans = recursiveEval(p);
+	if (ans==true)
+		cout << "true" << endl;
+	else
+		cout << "false" << endl;
 }
