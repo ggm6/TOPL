@@ -32,17 +32,25 @@ void Vectorize(vector<string>& v, const string& str);  // Turns string expressio
 void resolveExp(const vector<string>::iterator& end,node*& p,vector<string>::iterator& i); // Resolves expression of vector<string> into AST
 void evalAST(node*& p);
 bool recursiveEval(node*& p);
+bool areSame(const node* t1,const node* t2);
+void step(const node* t1);
 
 
 
 int main() {
 
-	string exp{"!true||false&&false"};    // Result = false
-	//string exp{"!((!false)||true)"};    // Result = false
+	//string exp{"!true||false&&false"};    // Result = false
+	string exp{"!((!false)||true)"};    // Result = false
 	//string exp{"true"};                 // Result = true
-	node* treeHead = nullptr;
-	createAST(treeHead,exp);
-	evalAST(treeHead);
+	node* t1 = nullptr;
+	createAST(t1,exp);
+	// evalAST(treeHead);	  // Final value of AST
+	//string exp2{"!true||false&&false"};
+	//string exp2{"!((!false)||true)"};
+	//string exp2{"true"};
+	node* t2 = nullptr;
+	createAST(t2,exp2);
+	//cout << areSame(t1,t2) << endl;
 	
 
 	return 0;
@@ -131,4 +139,23 @@ void evalAST(node*& p) {   // Evaluation wrapper to house recursive function
 		cout << "true" << endl;
 	else
 		cout << "false" << endl;
+}
+
+bool areSame(const node* t1,const node* t2) {
+	if (t1->Expression == t2->Expression) {
+		if (t1->succ!=nullptr && t2->succ!=nullptr)
+			return areSame(t1->succ,t2->succ);
+		else if (t1->Expression=="||" || t1->Expression=="&&")
+			return areSame(static_cast<const binaryOp*>(t1)->leftChild,static_cast<const binaryOp*>(t2)->leftChild) && areSame(static_cast<const binaryOp*>(t1)->rightChild,static_cast<const binaryOp*>(t2)->rightChild);
+		else if ((t1->succ==nullptr && t2->succ!=nullptr) || (t2->succ==nullptr && t1->succ!=nullptr))
+			return false;
+
+		return true;
+	}
+
+	return false;
+}
+
+void step(const node* t1) {
+	
 }
