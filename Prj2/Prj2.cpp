@@ -3,13 +3,13 @@
 #include <stack>
 #include <vector>
 #include <assert.h>
+#include <typeinfo>
 
 using namespace std;
 
 class node {
 public:
 	string Expression;
-
 	node * succ;
 
 	node() : succ(nullptr),Expression("") {};
@@ -30,26 +30,31 @@ public:
 void createAST(node*& head,const string& str);  // Essentially a wrapper
 void Vectorize(vector<string>& v, const string& str);  // Turns string expression into vector of strings
 void resolveExp(const vector<string>::iterator& end,node*& p,vector<string>::iterator& i); // Resolves expression of vector<string> into AST
-void evalAST(node*& p);
-bool recursiveEval(node*& p);
+void reduce(node*& p);
+bool step(node*& p);
+void stepSize(node*&p,int& size);
+void stepHeight(node*& p,int& height);
 bool areSame(const node* t1,const node* t2);
-void step(const node* t1);
+int size(node*& p);
+int height(node*& p);
 
 
 
 int main() {
 
 	//string exp{"!true||false&&false"};    // Result = false
-	string exp{"!((!false)||true)"};    // Result = false
-	//string exp{"true"};                 // Result = true
+	//string exp{"!((!false)||true)"};    // Result = false
+	string exp{"true||false"};                 // Result = true
 	node* t1 = nullptr;
 	createAST(t1,exp);
-	// evalAST(treeHead);	  // Final value of AST
+	//int s= height(t1);
+	//cout << s << endl;
+	//reduce(t1);	  // Final value of AST
 	//string exp2{"!true||false&&false"};
 	//string exp2{"!((!false)||true)"};
 	//string exp2{"true"};
-	node* t2 = nullptr;
-	createAST(t2,exp2);
+	//node* t2 = nullptr;
+	//createAST(t2,exp2);
 	//cout << areSame(t1,t2) << endl;
 	
 
@@ -120,21 +125,49 @@ void resolveExp(const vector<string>::iterator& end,node*& p,vector<string>::ite
 		resolveExp(end,p,++i);
 }
 
-bool recursiveEval(node*& p) {
+bool step(node*& p) {
 	if (p->Expression=="!")
-		return !recursiveEval(p->succ);
+		return !step(p->succ);
 	else if (p->Expression=="||")
-		return recursiveEval(static_cast<binaryOp*>(p)->leftChild) || recursiveEval(static_cast<binaryOp*>(p)->rightChild);
+		return step(static_cast<binaryOp*>(p)->leftChild) || step(static_cast<binaryOp*>(p)->rightChild);
 	else if (p->Expression=="&&")
-		return recursiveEval(static_cast<binaryOp*>(p)->leftChild) && recursiveEval(static_cast<binaryOp*>(p)->rightChild);
+		return step(static_cast<binaryOp*>(p)->leftChild) && step(static_cast<binaryOp*>(p)->rightChild);
 	else if (p->Expression=="true")
 		return true;
 	else if (p->Expression=="false")
 		return false;
 }
 
-void evalAST(node*& p) {   // Evaluation wrapper to house recursive function
-	bool ans = recursiveEval(p);
+void stepSize(node*& p,int& size) {
+	if (p->Expression=="!")
+		++size,stepSize(p->succ,size);
+	else if (p->Expression=="||" || p->Expression=="&&") {  // Prevent optimization
+		++size;
+		stepSize(static_cast<binaryOp*>(p)->leftChild,size);
+		stepSize(static_cast<binaryOp*>(p)->rightChild,size);
+	}
+	else if (p->Expression=="true" || p->Expression=="false")
+		++size;
+}
+
+void stepHeight(node*& p,int& height) {  // height by edges instead of nodes, i.e: height of "true" = 0
+	if (p->Expression=="!")
+		stepHeight(p->succ,++height);
+	else if (p->Expression=="||" || p->Expression=="&&") {  // Prevent optimization
+		int height1 = 0,height2 = 0;
+		stepHeight(static_cast<binaryOp*>(p)->leftChild,++height1);
+		stepHeight(static_cast<binaryOp*>(p)->rightChild,++height2);
+		if (height1 > height2)
+			height += height1;
+		else
+			height += height2;
+	}
+}
+
+void reduce(node*& p) {   // Evaluation wrapper to house recursive function
+	int size = 0,height = 0;
+	bool ans = step(p);
+	cout << "Ans: ";
 	if (ans==true)
 		cout << "true" << endl;
 	else
@@ -156,6 +189,14 @@ bool areSame(const node* t1,const node* t2) {
 	return false;
 }
 
-void step(const node* t1) {
-	
+int size(node*& p) {
+	int size = 0;
+	stepSize(p,size);
+	return size;
+}
+
+int height(node*& p) {
+	int height = 0;
+	stepHeight(p,height);
+	return height;
 }
