@@ -1,3 +1,6 @@
+#ifndef SUBST_HPP_INCLUDED
+#define SUBST_HPP_INCLUDED
+
 #include <vector>
 #include <string>
 
@@ -56,3 +59,5 @@ T subst(T e,vector<T> s) {
     return CallExpr(e0, args);
   }
 }
+
+#endif
