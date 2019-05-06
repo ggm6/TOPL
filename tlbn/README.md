@@ -1,1 +1,1 @@
-# Typed Boolean Lambda Numeric
+# Typed Lambda Boolean Numeric
